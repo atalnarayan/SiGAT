@@ -25,18 +25,11 @@ from common import DATASET_NUM_DIC
 #
 from fea_extra import FeaExtra
 
-OUTPUT_DIR = './embeddings/sigat'
-if not os.path.exists('embeddings'):
-    os.mkdir('embeddings')
-    if not os.path.exists(OUTPUT_DIR):
-        os.mkdir(OUTPUT_DIR)
-
-
 
 # Training settings
 parser = argparse.ArgumentParser()
 parser.add_argument('--devices', type=str, default='cpu', help='Devices')
-parser.add_argument('--seed', type=int, default=13, help='Random seed.')
+parser.add_argument('--seed', type=int, default=15, help='Random seed.')
 parser.add_argument('--epochs', type=int, default=100, help='Number of epochs to train.')
 parser.add_argument('--lr', type=float, default=0.0005, help='Initial learning rate.')
 parser.add_argument('--weight_decay', type=float, default=0.0001, help='Weight decay (L2 loss on parameters).')
@@ -46,8 +39,17 @@ parser.add_argument('--fea_dim', type=int, default=20, help='Feature Embedding D
 parser.add_argument('--batch_size', type=int, default=500, help='Batch Size')
 parser.add_argument('--dropout', type=float, default=0.0, help='Dropout k')
 parser.add_argument('--k', default=1, help='Folder k')
+parser.add_argument('--method', type=str, help="mulsigat or sigat")
 
 args = parser.parse_args()
+OUTPUT_DIR = './embeddings/'+args.method
+print(OUTPUT_DIR)
+if not os.path.exists('embeddings'):
+    os.mkdir('embeddings')
+if not os.path.exists(OUTPUT_DIR):
+    os.mkdir(OUTPUT_DIR)
+
+
 
 random.seed(args.seed)
 np.random.seed(args.seed)
@@ -242,13 +244,13 @@ class SiGAT(nn.Module):
 
 def load_data2(filename='', add_public_foe=True):
 
-    adj_lists1   = defaultdict(set)
-    adj_lists1_1 = defaultdict(set)
-    adj_lists1_2 = defaultdict(set)
-    adj_lists2   = defaultdict(set)
-    adj_lists2_1 = defaultdict(set)
-    adj_lists2_2 = defaultdict(set)
-    adj_lists3   = defaultdict(set)
+    adj_lists1   = defaultdict(set) # Undirected case: {u,v} if share a positive edge
+    adj_lists1_1 = defaultdict(set) # Directed case: (u,v) if a positive edge from u to v
+    adj_lists1_2 = defaultdict(set) # Directed case: (v,u) if a positive edge from u to v
+    adj_lists2   = defaultdict(set) # Undirected case: {u,v} if share a negative edge
+    adj_lists2_1 = defaultdict(set) # Directed case: (u,v) if a negative edge from u to v
+    adj_lists2_2 = defaultdict(set) # Directed case: (v,u) if a negative edge from u to v
+    adj_lists3   = defaultdict(set) # Undirected case: {u,v} if any interaction present
 
 
     with open(filename) as fp:
@@ -341,19 +343,34 @@ def run( dataset='bitcoin_alpha', k=2):
     assert b > 0, 'negative something wrong'
 
     # 38
-    adj_lists = adj_lists + adj_additions1 + adj_additions2
+    # adj_lists = adj_lists + adj_additions1 + adj_additions2
     
     #adj_lists = adj_lists + adj_additions1 + adj_additions2 + [adj_lists3]
     ########################
 
     # 2
-    # adj_lists = [adj_lists1, adj_lists2]
+    # adj_lists = [adj_lists1, adj_lists2] # Only considering the undirected graph
+
+    # 4
+    # adj_lists = [ adj_lists1_1, adj_lists1_2, adj_lists2_1, adj_lists2_2]
 
     # 6
     # adj_lists = [adj_lists1, adj_lists1_1, adj_lists1_2, adj_lists2, adj_lists2_1, adj_lists2_2]
 
+    # 10
+    # dir_adj_lists = [adj_lists1_1, adj_lists1_2, adj_lists2_1, adj_lists2_2]
+    # adj_lists = [adj_lists1, adj_lists2, *dir_adj_lists, *dir_adj_lists]
+
     # 18
     # adj_lists = adj_lists + adj_additions0
+
+    if args.method == 'mulsigat':
+        # 4
+        adj_lists = [ adj_lists1_1, adj_lists1_2, adj_lists2_1, adj_lists2_2]
+    else:
+        # 38
+        adj_lists = adj_lists + adj_additions1 + adj_additions2  
+
 
     print(len(adj_lists), 'motifs')
 
@@ -365,12 +382,12 @@ def run( dataset='bitcoin_alpha', k=2):
         edges = np.array(edges)
         adj = sp.csr_matrix((np.ones(len(edges)), (edges[:,0], edges[:,1])), shape=(num_nodes, num_nodes))
         return adj
-
+    if args.method == 'mulsigat':
+        adj_lists = [*adj_lists, *adj_lists, *adj_lists]
     adj_lists = list(map(func, adj_lists))
     features_lists = [features for _ in range(len(adj_lists))]
     aggs = [AttentionAggregator(features, NODE_FEAT_SIZE, NODE_FEAT_SIZE, num_nodes) for features, adj in
             zip(features_lists, adj_lists)]
-
     enc1 = Encoder(features_lists, NODE_FEAT_SIZE, EMBEDDING_SIZE1, adj_lists, aggs)
 
     model = SiGAT(enc1)

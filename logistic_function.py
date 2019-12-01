@@ -41,6 +41,14 @@ from sklearn.preprocessing import Normalizer
 from common import DATASET_NUM_DIC
 from fea_extra import FeaExtra
 
+# Testing settings
+parser = argparse.ArgumentParser()
+parser.add_argument('--method', type=str, help='mulsigat, sigat or fea')
+parser.add_argument('--hybrid', type=int, help='concatenate FeExtra features?')
+parser.add_argument('--dataset', type=str, help = 'which dataset to train on')
+
+args = parser.parse_args()
+
 EMBEDDING_SIZE = 20
 
 SINE_MODEL_PATH_DIC = {
@@ -86,6 +94,7 @@ def read_train_test_data(dataset, k):
 
 
 def common_logistic(dataset, k, embeddings, model):
+    print("Non-hybrid model: Not using features..")
     train_X, train_y, test_X, test_y  = read_train_test_data(dataset, k)
 
     train_X1 = []
@@ -96,6 +105,44 @@ def common_logistic(dataset, k, embeddings, model):
 
     for i, j in test_X:
         test_X1.append(np.concatenate([embeddings[i], embeddings[j]]))
+
+
+    logistic_function = linear_model.LogisticRegression()
+    logistic_function.fit(train_X1, train_y)
+    pred = logistic_function.predict(test_X1)
+    pred_p = logistic_function.predict_proba(test_X1)
+
+
+    pos_ratio =  np.sum(test_y) / test_y.shape[0]
+    accuracy =  metrics.accuracy_score(test_y, pred)
+    f1_score0 =  metrics.f1_score(test_y, pred)
+    f1_score1 =  metrics.f1_score(test_y, pred, average='macro')
+    f1_score2 =  metrics.f1_score(test_y, pred, average='micro')
+
+    auc_score =  metrics.roc_auc_score(test_y, pred_p[:, 1])
+    print("pos_ratio:", pos_ratio)
+    print('accuracy:', accuracy)
+    print("f1_score:", f1_score0)
+    print("macro f1_score:", f1_score1)
+    print("micro f1_score:", f1_score2)
+    print("auc score:", auc_score)
+
+    return pos_ratio, accuracy, f1_score0, f1_score1, f1_score2,  auc_score
+
+def hybrid_logistic(dataset, k, embeddings, model):
+    print("Hybrid model: Using features..")
+    train_X, train_y, test_X, test_y  = read_train_test_data(dataset, k)
+    fea = FeaExtra(k=k, dataset=dataset)
+    train_X1 = []
+    test_X1 = []
+
+    for i, j in train_X:
+        features_i_j = np.array(fea.get_features(i, j))
+        train_X1.append(np.concatenate([embeddings[i], embeddings[j], features_i_j]))
+
+    for i, j in test_X:
+        features_i_j = np.array(fea.get_features(i, j))
+        test_X1.append(np.concatenate([embeddings[i], embeddings[j], features_i_j]))
 
 
     logistic_function = linear_model.LogisticRegression()
@@ -260,6 +307,7 @@ def logistic_embedding7(k=1, dataset='epinions', dirname="sign2vec"):
     pos_ratio, accuracy, f1_score0, f1_score1, f1_score2, auc_score = common_logistic(dataset, k, embeddings, 'signet')
     return pos_ratio, accuracy, f1_score0, f1_score1, f1_score2, auc_score
 
+
 def logistic_embedding8(k=1, dataset='epinions'):
     """use feature to train logistic function
     Returns:
@@ -300,22 +348,38 @@ def logistic_embedding8(k=1, dataset='epinions'):
 
 
 def logistic_embedding9(k=1, dataset='epinions', epoch=10, dirname='sigat'):
-    """use sigat embedding to train logistic function
+    """use mulsigat/sigat embedding to train logistic function
     Returns:
         pos_ratio, accuracy, f1_score0, f1_score1, f1_score2, auc_score
     """
 
     filename = os.path.join('embeddings', dirname, 'embedding-{}-{}-{}.npy'.format(dataset, k, epoch))
     embeddings = np.load(filename)
-    pos_ratio, accuracy, f1_score0, f1_score1, f1_score2, auc_score = common_logistic(dataset, k, embeddings, 'sigat')
+    pos_ratio, accuracy, f1_score0, f1_score1, f1_score2, auc_score = common_logistic(dataset, k, embeddings, args.method)
+    return pos_ratio, accuracy, f1_score0, f1_score1, f1_score2, auc_score
+
+def logistic_embedding10(k=1, dataset='epinions', epoch=10, dirname='hybrid'):
+    """use sigat-Fea hybrid embedding to train logistic function
+    Returns:
+        pos_ratio, accuracy, f1_score0, f1_score1, f1_score2, auc_score
+    """
+
+    filename = os.path.join('embeddings', dirname, 'embedding-{}-{}-{}.npy'.format(dataset, k, epoch))
+    embeddings = np.load(filename)
+
+    pos_ratio, accuracy, f1_score0, f1_score1, f1_score2, auc_score = hybrid_logistic(dataset, k, embeddings, args.method)
     return pos_ratio, accuracy, f1_score0, f1_score1, f1_score2, auc_score
 
 
-
 def main():
-    dataset = 'bitcoin_alpha'
-    pos_ratio, accuracy, f1_score0, f1_score1, f1_score2, auc_score = logistic_embedding9(k=1, dataset=dataset, epoch=100, dirname='sigat')
-    
+    dataset = args.dataset
+    if args.method == 'fea':
+        pos_ratio, accuracy, f1_score0, f1_score1, f1_score2, auc_score = logistic_embedding8(k=1, dataset=dataset)
+    elif args.hybrid == 1:
+        pos_ratio, accuracy, f1_score0, f1_score1, f1_score2, auc_score = logistic_embedding10(k=1, dataset=dataset, epoch=80, dirname=args.method)
+    else:
+        pos_ratio, accuracy, f1_score0, f1_score1, f1_score2, auc_score = logistic_embedding9(k=1, dataset=dataset, epoch=80, dirname=args.method)
+        
     # print("pos_ratio:", pos_ratio)
     # print('accuracy:', accuracy)
     # print("f1_score:", f1_score0)

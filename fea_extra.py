@@ -36,7 +36,7 @@ from common import DATASET_NUM_DIC
 
 class FeaExtra(object):
 
-    def __init__(self, dataset='epinions', k=1, debug=False):
+    def __init__(self, dataset='bitcoin_alpha', k=1, debug=False):
         filename = './experiment-data/{}-train-{}.edgelist'.format(dataset, k)
         if debug:
             filename = './test.edgelists'

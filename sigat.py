@@ -62,12 +62,12 @@ NUM_NODE = DATASET_NUM_DIC[args.dataset]
 WEIGHT_DECAY = args.weight_decay
 NODE_FEAT_SIZE = args.fea_dim
 EMBEDDING_SIZE1 = args.dim
+DEVICES = torch.device(args.devices)
 LEARNING_RATE = args.lr
 BATCH_SIZE = args.batch_size
 EPOCHS = args.epochs
 DROUPOUT = args.dropout
 K = args.k
-DEVICES = torch.device(args.devices)
 print(DEVICES)
 
 
@@ -391,18 +391,7 @@ def run( dataset='bitcoin_alpha', k=2):
     enc1 = Encoder(features_lists, NODE_FEAT_SIZE, EMBEDDING_SIZE1, adj_lists, aggs)
 
     model = SiGAT(enc1)
-    if args.devices=='cuda:0':
-        # model = Model(input_size, output_size)
-        if torch.cuda.device_count() > 1:
-            print("Let's use", torch.cuda.device_count(), "GPUs!")
-            
-            model = nn.DataParallel(model)
-            model.to(DEVICES)
-        else:
-            model.to(DEVICES)   
-    else:    
-        model.to(DEVICES)
-    # model.to(DEVICES)
+    model.to(DEVICES)
     print(model.train())
     optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad,
                                         list(model.parameters()) + list(enc1.parameters()) \

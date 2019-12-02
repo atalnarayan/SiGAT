@@ -56,7 +56,7 @@ np.random.seed(args.seed)
 torch.manual_seed(args.seed)
 
 NEG_LOSS_RATIO = 1
-INTERVAL_PRINT = 20
+INTERVAL_PRINT = 2
 
 NUM_NODE = DATASET_NUM_DIC[args.dataset]
 WEIGHT_DECAY = args.weight_decay

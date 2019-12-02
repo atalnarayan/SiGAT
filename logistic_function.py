@@ -144,7 +144,7 @@ def hybrid_logistic(dataset, k, embeddings, model):
         features_i_j = np.array(fea.get_features(i, j))
         test_X1.append(np.concatenate([embeddings[i], embeddings[j], features_i_j]))
 
-
+    #print(train_X1[1])
     logistic_function = linear_model.LogisticRegression()
     logistic_function.fit(train_X1, train_y)
     pred = logistic_function.predict(test_X1)

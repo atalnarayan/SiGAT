@@ -46,6 +46,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--method', type=str, help='mulsigat, sigat or fea')
 parser.add_argument('--hybrid', type=int, help='concatenate FeExtra features?')
 parser.add_argument('--dataset', type=str, help = 'which dataset to train on')
+parser.add_argument('--epoch', type=int, help='which epoch vectors to test?')
 
 args = parser.parse_args()
 
@@ -376,9 +377,9 @@ def main():
     if args.method == 'fea':
         pos_ratio, accuracy, f1_score0, f1_score1, f1_score2, auc_score = logistic_embedding8(k=1, dataset=dataset)
     elif args.hybrid == 1:
-        pos_ratio, accuracy, f1_score0, f1_score1, f1_score2, auc_score = logistic_embedding10(k=1, dataset=dataset, epoch=80, dirname=args.method)
+        pos_ratio, accuracy, f1_score0, f1_score1, f1_score2, auc_score = logistic_embedding10(k=1, dataset=dataset, epoch=args.epoch, dirname=args.method)
     else:
-        pos_ratio, accuracy, f1_score0, f1_score1, f1_score2, auc_score = logistic_embedding9(k=1, dataset=dataset, epoch=80, dirname=args.method)
+        pos_ratio, accuracy, f1_score0, f1_score1, f1_score2, auc_score = logistic_embedding9(k=1, dataset=dataset, epoch=args.epoch, dirname=args.method)
         
     # print("pos_ratio:", pos_ratio)
     # print('accuracy:', accuracy)

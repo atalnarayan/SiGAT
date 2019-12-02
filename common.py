@@ -19,7 +19,7 @@ SIDE_MODEL_PATH_DIC = {
 
 DATASET_NUM_DIC = {
     'epinions': 131828,
-    'slashdot': 82140,
+    'slashdot': 82144,
     'bitcoin_alpha': 3783,
     'bitcoin_otc': 5881,
 }

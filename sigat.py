@@ -394,10 +394,11 @@ def run( dataset='bitcoin_alpha', k=2):
     if DEVICES=='cuda':
         # model = Model(input_size, output_size)
         if torch.cuda.device_count() > 1:
-        print("Let's use", torch.cuda.device_count(), "GPUs!")
-        # dim = 0 [30, xxx] -> [10, ...], [10, ...], [10, ...] on 3 GPUs
-        model = nn.DataParallel(model)
-        model.to(device)
+            print("Let's use", torch.cuda.device_count(), "GPUs!")
+            model = nn.DataParallel(model)
+            model.to(device)
+        else:
+            model.to(DEVICES)   
     else:    
         model.to(DEVICES)
     print(model.train())

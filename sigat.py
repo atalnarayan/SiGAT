@@ -391,7 +391,7 @@ def run( dataset='bitcoin_alpha', k=2):
     enc1 = Encoder(features_lists, NODE_FEAT_SIZE, EMBEDDING_SIZE1, adj_lists, aggs)
 
     model = SiGAT(enc1)
-    if DEVICES=='cuda':
+    if args.devices=='cuda':
         # model = Model(input_size, output_size)
         if torch.cuda.device_count() > 1:
             print("Let's use", torch.cuda.device_count(), "GPUs!")
